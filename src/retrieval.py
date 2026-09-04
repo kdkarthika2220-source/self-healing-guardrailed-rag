@@ -2,7 +2,7 @@ from pathlib import Path
 import time
 import re
 import chromadb
-from sentence_transformers import SentenceTransformer
+
 
 from bm25 import load_bm25_index, search_bm25
 
@@ -27,32 +27,56 @@ RRF_K = 60
 
 
 # ============================================================
-# LOAD CHROMADB
+# LAZY-LOADED RESOURCES
 # ============================================================
 
-client = chromadb.PersistentClient(
-    path=str(CHROMA_PATH)
-)
-
-collection = client.get_collection(
-    name=COLLECTION_NAME
-)
+client = None
+collection = None
+model = None
+bm25_index_data = None
 
 
-# ============================================================
-# LOAD EMBEDDING MODEL
-# ============================================================
+def get_collection():
 
-model = SentenceTransformer(
-    MODEL_NAME
-)
+    global client, collection
+
+    if collection is None:
+
+        client = chromadb.PersistentClient(
+            path=str(CHROMA_PATH)
+        )
+
+        collection = client.get_collection(
+            name=COLLECTION_NAME
+        )
+
+    return collection
 
 
-# ============================================================
-# LOAD BM25 INDEX
-# ============================================================
+def get_embedding_model():
 
-bm25_index_data = load_bm25_index()
+    global model
+
+    if model is None:
+
+        from sentence_transformers import SentenceTransformer
+
+        model = SentenceTransformer(
+            MODEL_NAME
+        )
+
+    return model
+
+
+def get_bm25_index():
+
+    global bm25_index_data
+
+    if bm25_index_data is None:
+
+        bm25_index_data = load_bm25_index()
+
+    return bm25_index_data
 
 
 # ============================================================
@@ -67,13 +91,16 @@ def search_vector(
     Search ChromaDB using semantic vector similarity.
     """
 
+    current_model = get_embedding_model()
+    current_collection = get_collection()
+
     # --------------------------------------------------------
     # Convert query into embedding
     # --------------------------------------------------------
 
     start = time.perf_counter()
 
-    query_embedding = model.encode(
+    query_embedding = current_model.encode(
         query
     )
 
@@ -88,7 +115,7 @@ def search_vector(
 
     start = time.perf_counter()
 
-    results = collection.query(
+    results = current_collection.query(
         query_embeddings=[
             query_embedding.tolist()
         ],
@@ -362,12 +389,14 @@ def hybrid_search(
         # ----------------------------------------------------
         # BM25 search
         # ----------------------------------------------------
-
+       
         bm25_start = time.perf_counter()
+
+        current_bm25_index = get_bm25_index()
 
         bm25_results = search_bm25(
             query=sub_query,
-            index_data=bm25_index_data,
+            index_data=current_bm25_index,
             top_k=bm25_top_k
         )
 

@@ -7,7 +7,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 RESULTS_PATH = (
     PROJECT_ROOT
     / "eval"
-    / "eval_results.json"
+    / "baseline_results.json"
 )
 
 
