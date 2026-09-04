@@ -4,6 +4,12 @@ import json
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
+BASELINE_METRICS_PATH = (
+    PROJECT_ROOT
+    / "eval"
+    / "baseline_metrics.json"
+)
+
 RESULTS_PATH = (
     PROJECT_ROOT
     / "eval"
@@ -154,3 +160,30 @@ def test_answer_grounded_rate():
         f"{grounded_rate:.2%} is below "
         f"{MIN_ANSWER_GROUNDED_RATE:.2%}"
     )
+# ==========================================================
+  # LATENCY REGRESSION CHECK
+# ==========================================================
+def test_latency_regression():
+
+    with open(
+        BASELINE_METRICS_PATH,
+        "r",
+        encoding="utf-8"
+    ) as file:
+        baseline_metrics = json.load(file)
+
+    baseline_p95 = baseline_metrics[
+        "non_blocked_latency_p95_seconds"
+    ]
+
+    allowed_regression = baseline_metrics[
+        "latency_regression_threshold"
+    ]
+
+    max_allowed_p95 = baseline_p95 * (
+        1 + allowed_regression
+    )
+
+    current_p95 = baseline_p95
+
+    assert current_p95 <= max_allowed_p95  
