@@ -1,0 +1,16 @@
+policies:
+
+  require_citation:
+    enabled: true
+
+  blocked_topics:
+    enabled: true
+    topics:
+      - medical diagnosis
+      - medical treatment advice
+
+  blocked_competitors:
+    enabled: true
+    names:
+      - CompetitorX
+      - CompetitorY
