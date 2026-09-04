@@ -3,15 +3,27 @@ import re
 
 from groq import Groq
 from presidio_analyzer import AnalyzerEngine
+from presidio_analyzer.nlp_engine import NlpEngineProvider
 from presidio_anonymizer import AnonymizerEngine
 from pydantic import BaseModel, Field, ValidationError
 
 
 GROQ_MODEL = "openai/gpt-oss-120b"
 
-groq_client = Groq(
-    api_key=os.environ["GROQ_API_KEY"]
-)
+groq_client = None
+
+
+def get_groq_client():
+
+    global groq_client
+
+    if groq_client is None:
+
+        groq_client = Groq(
+            api_key=os.environ["GROQ_API_KEY"]
+        )
+
+    return groq_client
 
 
 # ============================================================
@@ -63,8 +75,10 @@ Grounding is checked by another critic.
 
 Return only JSON.
 """
+    client = get_groq_client()
 
-    response = groq_client.chat.completions.create(
+    response = client.chat.completions.create(
+    
         model=GROQ_MODEL,
         temperature=0,
         messages=[
@@ -152,16 +166,59 @@ def detect_prompt_injection(user_input: str) -> dict:
 
 
 # ============================================================
-# PII REDACTION
+# PII REDACTION lazy load
 # ============================================================
 
-pii_analyzer = AnalyzerEngine()
-pii_anonymizer = AnonymizerEngine()
+pii_analyzer = None
+pii_anonymizer = None
 
+
+def get_pii_analyzer():
+
+    global pii_analyzer
+
+    if pii_analyzer is None:
+
+        configuration = {
+            "nlp_engine_name": "spacy",
+            "models": [
+                {
+                    "lang_code": "en",
+                    "model_name": "en_core_web_sm"
+                }
+            ]
+        }
+
+        provider = NlpEngineProvider(
+            nlp_configuration=configuration
+        )
+
+        nlp_engine = provider.create_engine()
+
+        pii_analyzer = AnalyzerEngine(
+            nlp_engine=nlp_engine,
+            supported_languages=["en"]
+        )
+
+    return pii_analyzer
+
+
+def get_pii_anonymizer():
+
+    global pii_anonymizer
+
+    if pii_anonymizer is None:
+
+        pii_anonymizer = AnonymizerEngine()
+
+    return pii_anonymizer
 
 def detect_and_redact_pii(user_input: str) -> dict:
 
-    results = pii_analyzer.analyze(
+    analyzer = get_pii_analyzer()
+    anonymizer = get_pii_anonymizer()
+
+    results = analyzer.analyze(
         text=user_input,
         language="en",
         entities=[
@@ -179,7 +236,7 @@ def detect_and_redact_pii(user_input: str) -> dict:
             "entities": []
         }
 
-    anonymized = pii_anonymizer.anonymize(
+    anonymized = anonymizer.anonymize(
         text=user_input,
         analyzer_results=results
     )

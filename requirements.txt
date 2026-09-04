@@ -1,0 +1,11 @@
+chromadb
+sentence-transformers
+rank-bm25
+groq
+pydantic
+langgraph
+PyYAML
+presidio-analyzer
+presidio-anonymizer
+spacy
+pytest
