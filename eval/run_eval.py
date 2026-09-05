@@ -468,9 +468,7 @@ def run_single_case(
             # Keep the schema consistent even when
             # evaluation execution fails.
 
-            "critic_not_grounded_count": 0,
-            "critic_abstain_count": 0,
-
+            
             "input_safe": True,
 
             "guardrail_reason": "",
@@ -620,16 +618,7 @@ def main():
             f"{result['retry_count']}"
         )
 
-        print(
-            f"Critic NG catches : "
-            f"{result['critic_not_grounded_count']}"
-        )
-
-        print(
-            f"Critic abstains   : "
-            f"{result['critic_abstain_count']}"
-        )
-
+        
         print(
             f"Judge behavior    : "
             f"{result['judge_behavior_correct']}"

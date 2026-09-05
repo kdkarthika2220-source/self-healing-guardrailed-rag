@@ -49,9 +49,6 @@ class RAGState(TypedDict, total=False):
     verdict: str
     critic_reason: str
 
-    critic_not_grounded_count: int
-    critic_abstain_count: int 
-
     input_safe: bool
     guardrail_reason: str
 
